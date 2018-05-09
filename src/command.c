@@ -6,7 +6,7 @@ void encode_file(char* in, char* out)
     FILE *output = make_encoded_file(out);
 
     srand(time(NULL));
-    struct Frequency_tree *freq_tree = (struct Frequency_tree*)malloc(sizeof(struct Frequency_tree) * CHAR_COUNT);
+    Frequency_tree *freq_tree = (Frequency_tree*)malloc(sizeof(Frequency_tree) * CHAR_COUNT);
 
     freq_tree_init(freq_tree);
 
@@ -18,44 +18,49 @@ void encode_file(char* in, char* out)
     assign_code(freq_tree);
 
 
-    put_encoded(freq, input);
+    put_encoded(freq_tree, input, output);
 }
 
-void put_encoded(struct Frequency_tree* freq, FILE* input)
+void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
 {
     rewind(input);
 
-    struct Code code;
+    WCode *code;
     while(!feof(input)){
-        code = make_8byte_code(freq);
-        for(uchar_t i = 0; i < 8; i++){
-            fputc(code[i], output);
+        code = make_32byte_code(freq, input);
+        for(uchar_t i = 0; i < code->u1->code_len; i++){
+            fputc(code->u1->code[i], output);
         }
+        free(code);
     }
 }
 
-struct Code make_8byte_code(struct Frequency_tree* freq, FILE* input)
+WCode* make_32byte_code(Frequency_tree *freq, FILE *input)
 {
-    struct Code code;
-    for (uchar_t i = 0; i < 8; i++)
-        code[i] = 0;
+    WCode *wide_code = (WCode*)malloc(sizeof(WCode));
 
-    uchar_t leng = 0;
-    uchar_t index;
+    BinCode *code = (BinCode*)malloc(sizeof(BinCode));
+    for (uchar_t i = 0; i < code->code_len; i++)
+        code->code[i] = 0;
+
+    uchar_t binleng = 0;
+    uchar_t wleng = 0;
+    uchar_t index = 0;
+    int i = 0;
+
 
     char tmp;
-    while(leng % 8 != 0){
+    while(binleng < code->code_len * 8){
         tmp = getc(input);
         index = search_char(freq, tmp);
-        leng += freq[index].code_len;
-        code[leng / 8] |= freq[index].code
-    
+        code[binleng / code->code_len].code[i] += freq[index].code;
+        binleng += freq[index].code_len;
     }
 
-    return code;
+    return wide_code;
 }
 
-uchar_t search_char(struct Frequency_tree* freq, char chr)
+uchar_t search_char(Frequency_tree* freq, char chr)
 {
     for(uchar_t i = CHAR_COUNT - 1; i >= 0; i--){
         if(freq[i].sym == chr)
@@ -64,7 +69,7 @@ uchar_t search_char(struct Frequency_tree* freq, char chr)
     return 0;
 }
 
-void freq_tree_init(struct Frequency_tree* freq)
+void freq_tree_init(Frequency_tree* freq)
 {
     for (uchar_t i = 0; i < CHAR_COUNT; i++){
         freq[i].sym = i;
@@ -75,7 +80,7 @@ void freq_tree_init(struct Frequency_tree* freq)
     }
 }
 
-void assign_code(struct Frequency_tree* freq)
+void assign_code(Frequency_tree* freq)
 {
     uchar_t i = 0;
     while(freq[i+1].count > 0){
@@ -87,12 +92,12 @@ void assign_code(struct Frequency_tree* freq)
     freq[i].code_len = i;
 }
 
-void sort_freq_tree(struct Frequency_tree* freq)
+void sort_freq_tree(Frequency_tree* freq)
 {
     sort(freq, 128);
 }
 
-void sort(struct Frequency_tree* arr, int count)
+void sort(Frequency_tree* arr, int count)
 {
     uchar_t i = 0;
     while(i++ < CHAR_COUNT){
@@ -103,9 +108,9 @@ void sort(struct Frequency_tree* arr, int count)
     }
 }
 
-void swap(struct Frequency_tree* p1, struct Frequency_tree* p2)
+void swap(Frequency_tree* p1, Frequency_tree* p2)
 {
-    struct Frequency_tree tmp = *p1;
+    Frequency_tree tmp = *p1;
     *p1 = *p2;
     *p2 = tmp;
 }

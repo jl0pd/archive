@@ -5,26 +5,33 @@
 #define uchar_t unsigned char
 #define uint32_t unsigned int
 
-typedef struct Frequency_tree{
+typedef struct {
     char sym;
     uchar_t code_len;
     int count;
-    struct Code code;
-} freq_tree;
+    BinCode code;
+} Frequency_tree;
 
-struct Code{
-    uchar_t code[8];
-};
+typedef struct {
+    uchar_t code_len;
+    uchar_t code[16];
+} BinCode;
 
-void sort(struct Frequency_tree* arr, int count);
-void swap(struct Frequency_tree* p1, struct Frequency_tree* p2);
-void sort_freq_tree(struct Frequency_tree* freq);
+typedef struct {
+    BinCode *u1;
+    BinCode *u2;
+} WCode;
 
-void assign_code(struct Frequency_tree* freq);
-void freq_tree_init(struct Frequency_tree* freq);
-uchar_t make_byte_code(struct Frequency_tree* freq, FILE* input);
-uchar_t search_char(struct Frequency_tree* freq, char chr);
+void sort(Frequency_tree *arr, int count);
+void swap(Frequency_tree *p1, Frequency_tree *p2);
+void sort_freq_tree(Frequency_tree *freq);
 
-void encode_file(char* in, char* out);
-uchar_t make_8byte_code(struct Frequency_tree* freq, FILE* input)
-uchar_t search_char(struct Frequency_tree* freq, char chr)
+void assign_code(Frequency_tree *freq);
+void freq_tree_init(Frequency_tree *freq);
+BinCode *make_16byte_code(Frequency_tree *freq, FILE *input);
+
+uchar_t search_char(Frequency_tree *freq, char chr);
+
+void encode_file(char *in, char *out);
+uchar_t make_8byte_code(Frequency_tree *freq, FILE *input);
+uchar_t search_char(Frequency_tree *freq, char chr);
