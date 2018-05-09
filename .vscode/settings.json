@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "inttypes.h": "c",
+        "cinttypes": "c",
+        "cstdint": "c",
+        "c++config.h": "c"
+    }
+}
