@@ -6,7 +6,8 @@ void encode_file(char* in, char* out)
     FILE *output = make_encoded_file(out);
 
     srand(time(NULL));
-    Frequency_tree *freq_tree = (Frequency_tree*)malloc(sizeof(Frequency_tree) * CHAR_COUNT);
+    Frequency_tree *freq_tree = 
+        (Frequency_tree*)malloc(sizeof(Frequency_tree) * CHAR_COUNT);
 
     freq_tree_init(freq_tree);
 
@@ -27,7 +28,7 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
     Conveyor *bit_stream = (Conveyor*)malloc(sizeof(Conveyor*));
 
     bit_stream->convey_len = 32;
-
+    bit_stream->convey_cur_len = 0;
     for(uchar_t i = 0; i < bit_stream->convey_len; i++){
         bit_stream->u[i] = 0;
     }
@@ -41,8 +42,9 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
             for(uchar_t j = 0; j < bit_stream->convey_len; j++){
                 bit_stream->u[j] = bit_stream->u[j+1];
             }
-            
+
             bit_stream->u[bit_stream->convey_len - 1] = 0;
+            bit_stream->convey_cur_len -= 8;
         }
     }
     free(bit_stream);
@@ -51,20 +53,18 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
 void convey(Conveyor *bit_stream, Frequency_tree *freq,FILE *input)
 {
     uchar_t index;
-    short convey_leng = 0;
-    int arpos, subarpos;
+
+    uchar_t arpos, subarpos;
 
     char tmp;
 
-    while(convey_leng < bit_stream->convey_len * 4){
+    while(bit_stream->convey_cur_len < bit_stream->convey_len * 4){
         index = search_char(freq, getc(input));
 
-        arpos = convey_leng / 8;
-        subarpos = convey_leng % 8;
+        bit_stream->u[bit_stream->convey_cur_len / 8] 
+            |= (freq[index].code << subarpos = bit_stream->convey_cur_len % 8);
 
-        bit_stream->u[arpos] |= (freq[index].code << subarpos);
-
-        convey_leng += freq[index].code_len;
+        bit_stream->convey_cur_len += freq[index].code_len;
     }
 }
 
@@ -105,7 +105,7 @@ void sort_freq_tree(Frequency_tree* freq)
     sort(freq, 128);
 }
 
-void sort(Frequency_tree* arr, int count)
+void sort(Frequency_tree* arr, uchar_t count)
 {
     uchar_t i = 0;
     while(i++ < CHAR_COUNT){

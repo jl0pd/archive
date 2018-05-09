@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <malloc.h>
 #include "files.h"
 
 #define CHAR_COUNT 128
@@ -24,11 +24,12 @@ typedef struct {
 } WCode;
 
 typedef struct {
+    short convey_cur_len;
     uchar_t convey_len;
     uchar_t u[32];
 } Conveyor;
 
-void sort(Frequency_tree *arr, int count);
+void sort(Frequency_tree *arr, uchar_t count);
 void swap(Frequency_tree *p1, Frequency_tree *p2);
 void sort_freq_tree(Frequency_tree *freq);
 
