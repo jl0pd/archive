@@ -4,6 +4,7 @@
 #define CHAR_COUNT 128
 #define uchar_t unsigned char
 #define uint32_t unsigned int
+#define uint64_t unsigned long long
 
 typedef struct {
     char sym;
@@ -21,6 +22,11 @@ typedef struct {
     BinCode *u1;
     BinCode *u2;
 } WCode;
+
+typedef struct {
+    uchar_t convey_len;
+    uchar_t u[32];
+} Conveyor;
 
 void sort(Frequency_tree *arr, int count);
 void swap(Frequency_tree *p1, Frequency_tree *p2);

@@ -17,7 +17,6 @@ void encode_file(char* in, char* out)
     sort_freq_tree(freq_tree);
     assign_code(freq_tree);
 
-
     put_encoded(freq_tree, input, output);
 }
 
@@ -25,39 +24,36 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
 {
     rewind(input);
 
-    WCode *code;
+    Conveyor *bit_stream = (Conveyor*)malloc(sizeof(Conveyor*));
+    bit_stream->convey_len = 32;
     while(!feof(input)){
-        code = make_32byte_code(freq, input);
-        for(uchar_t i = 0; i < code->u1->code_len; i++){
-            fputc(code->u1->code[i], output);
+        convey(bit_stream, freq, input);
+
+        for(uchar_t i = 0; i < bit_stream->convey_len / 2; i++){
+            fputc(bit_stream->u[0], output);
+            bit_stream->u[i] = bit_stream->u[i+1];
         }
-        free(code);
     }
+    free(bit_stream);
 }
 
-WCode* make_32byte_code(Frequency_tree *freq, FILE *input)
+void convey(Conveyor *bit_stream, Frequency_tree *freq,FILE *input)
 {
-    WCode *wide_code = (WCode*)malloc(sizeof(WCode));
-
-    BinCode *code = (BinCode*)malloc(sizeof(BinCode));
-    for (uchar_t i = 0; i < code->code_len; i++)
-        code->code[i] = 0;
-
-    uchar_t binleng = 0;
-    uchar_t wleng = 0;
-    uchar_t index = 0;
-    int i = 0;
-
+    uchar_t index;
+    short convey_leng = 0;
+    int arpos, subarpos;
 
     char tmp;
-    while(binleng < code->code_len * 8){
-        tmp = getc(input);
-        index = search_char(freq, tmp);
-        code[binleng / code->code_len].code[i] += freq[index].code;
-        binleng += freq[index].code_len;
-    }
 
-    return wide_code;
+    while(convey_leng < bit_stream->convey_len * 4){
+        index = search_char(freq, getc(input));
+
+        arpos = convey_leng / 8;
+        subarpos = convey_leng % 8;
+
+
+        convey_leng += freq[index].code_len;
+    }
 }
 
 uchar_t search_char(Frequency_tree* freq, char chr)
