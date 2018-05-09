@@ -25,13 +25,24 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
     rewind(input);
 
     Conveyor *bit_stream = (Conveyor*)malloc(sizeof(Conveyor*));
+
     bit_stream->convey_len = 32;
+
+    for(uchar_t i = 0; i < bit_stream->convey_len; i++){
+        bit_stream->u[i] = 0;
+    }
+    
     while(!feof(input)){
         convey(bit_stream, freq, input);
 
         for(uchar_t i = 0; i < bit_stream->convey_len / 2; i++){
             fputc(bit_stream->u[0], output);
-            bit_stream->u[i] = bit_stream->u[i+1];
+
+            for(uchar_t j = 0; j < bit_stream->convey_len; j++){
+                bit_stream->u[j] = bit_stream->u[j+1];
+            }
+            
+            bit_stream->u[bit_stream->convey_len - 1] = 0;
         }
     }
     free(bit_stream);
@@ -51,6 +62,7 @@ void convey(Conveyor *bit_stream, Frequency_tree *freq,FILE *input)
         arpos = convey_leng / 8;
         subarpos = convey_leng % 8;
 
+        bit_stream->u[arpos] |= (freq[index].code << subarpos);
 
         convey_leng += freq[index].code_len;
     }
