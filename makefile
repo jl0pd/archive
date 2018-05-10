@@ -1,10 +1,25 @@
-all: prog
+CFLAGS = -std=c11 -Wall -Werror -g
 
-prog: main.o
-	gcc -std=c11 bin/main.o -o prog.test
-main.o: src/main.c bin
-	gcc -std=c11 -c src/main.c -o bin/main.o
+all: bin build bin/prog.test
+
+bin/prog.test: build/main.o build/command.o
+	gcc $(CFLAGS) build/main.o build/command.o build/files.o -o bin/prog.test
+
+build/main.o: src/main.c
+	gcc $(CFLAGS) -c src/main.c -o build/main.o
+build/command.o: build/files.o src/command.c src/command.h
+	gcc $(CFLAGS) -c src/command.c -o build/command.o
+build/files.o: src/files.c src/files.h
+	gcc $(CFLAGS) -c src/files.c -o build/files.o
+
 bin:
-	mkdir bin
+	mkdir -p bin
+build:
+	mkdir -p build
+
 clean:
-	rm -rf bin
+	rm -r bin
+	rm -r build
+
+run:
+	./bin/prog.test 	

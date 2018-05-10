@@ -2,7 +2,11 @@
 
 int main()
 {
-    encode_file(NULL, NULL);
+    FILE *f = fopen("input.txt", "w+");
 
-    return 0;
+    fwrite("test string with aaaaaaaaaaaa", sizeof(char), 30, f);
+
+    fclose(f);
+
+    return 0;    
 }

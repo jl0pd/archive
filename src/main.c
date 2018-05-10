@@ -1,23 +1,32 @@
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+// #include <string.h>
+// #include <stdlib.h>
+
+#include "string.h"
+#include "command.h"
 
 int main(int argc, char *argv[])
 {
-    int index = 0;
+    // int index = 0;
+    // int i = 0;
+    // char *input;
+    // char *output;
 
+
+    encode_file("input.txt", "output.arch");
+
+/*
     while (++index < argc){
         if (argv[index][0] == '-'){
             if(argv[index][1] == '-'){
-                if      (strcmp(argv[index], "--decode") == 0){
+                if      (scmp(argv[index], "--decode") == 0){
                     printf("l %s\n", argv[index]);
                 
-                }else if(strcmp(argv[index], "--encode") == 0){
+                }else if(scmp(argv[index], "--encode") == 0){
                     printf("l %s\n", argv[index]);
                 
-                }else if(strcmp(argv[index], "--output") == 0){
-                    printf("l %s\n", argv[index++]);
-                    printf("n %s\n", argv[index]);
+                }else if(scmp(argv[index], "--output") == 0){
+                    output = argv[++index];
                 }else{
                     printf("incorrect long flag\n");
                 }
@@ -30,14 +39,15 @@ int main(int argc, char *argv[])
                     printf("s %s\n", argv[index]);
                 
                 }else if(argv[index][1] == 'o'){
-                    printf("s %s\n", argv[index++]);
-                    printf("n %s\n", argv[index]);
+                    output = argv[--index];
                 }else{
                     printf("incorrect short flag\n");
                 }
             }
         }else{
-            printf("error\n");
+            input = argv[index];
         }
     }
+*/
+
 }
