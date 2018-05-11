@@ -89,33 +89,33 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
         convey(bit_stream, freq, input);
         // printf("after convey\n");
 
-        // for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
-        //     printf("%2d ", i);
-        //     if (i == 15){
-        //         putchar('|');
-        //         putchar(' ');
-        //     }
-        // }
-        // putchar('\n');
+        for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
+            printf("%2d ", i);
+            if (i == 15){
+                putchar('|');
+                putchar(' ');
+            }
+        }
+        putchar('\n');
 
-        // for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
-        //     printf("%02X ", bit_stream->u[i]);
-        //     if (i == 15){
-        //         putchar('|');
-        //         putchar(' ');
-        //     }
-        // }
-        // putchar('\n');
+        for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
+            printf("\x1b[%dm%02X ", bit_stream->u[i] == 0 ? 0 : 31,    bit_stream->u[i]);
+            if (i == 15){
+                putchar('|');
+                putchar(' ');
+            }
+        }
+        putchar('\n');
 
-        // printf("convey cur len %d\n", bit_stream->convey_cur_len);
-
-        for(short i = 0; i < bit_stream->convey_cur_len + 16; i++){
+        for(short i = 0; i < bit_stream->convey_cur_len; i++){
             fputc(bit_stream->u[0], output);
-            // printf("putted %02X to %d\n", bit_stream->u[0], i);
+            printf("putted %02X to %d\n", bit_stream->u[0],i);
             
             for(uchar_t j = 0; j < bit_stream->convey_max_len; j++){
                 bit_stream->u[j] = bit_stream->u[j+1];
             }
+
+            printf("convey cur len %d\n", bit_stream->convey_cur_len);
 
             bit_stream->u[bit_stream->convey_max_len - 1] = 0;
             bit_stream->convey_cur_len -= 8;
@@ -128,6 +128,32 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
     fwrite(&header->file_size, sizeof(uint32_t), 1, output);
     free(bit_stream);
     free(header);
+}
+
+void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
+{
+    uchar_t index;
+
+    while(bit_stream->convey_cur_len < bit_stream->convey_max_len * 4){
+        index = getc(input);
+        if ((index < 0) || (index > 127)){
+            bit_stream->convey_cur_len += 8;
+            bit_stream->u[15] =
+                (bit_stream->convey_cur_len % 8) |
+                ((15 - (bit_stream->convey_cur_len / 8)) << 4);
+            
+            return;
+        }
+        index = search_char(freq, index);
+
+        bit_stream->convey_cur_len += freq[index].symbol.code_leng;
+
+        bit_stream->u[bit_stream->convey_cur_len / 8] |=
+            1 << 
+            ((bit_stream->convey_cur_len % 8
+                + (freq[index].symbol.code_leng - 1) % 8) % 8);
+
+    }
 }
 
 FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
@@ -157,35 +183,10 @@ FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
             output);
 
         index--;
+        header->file_size += 2;
     }
 
     return header;
-}
-
-void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
-{
-    uchar_t index;
-
-   
-        
-    while(bit_stream->convey_cur_len < bit_stream->convey_max_len * 4){
-        index = getc(input);
-        if ((index < 0) || (index > 127)){
-            bit_stream->u[bit_stream->convey_cur_len / 8] =
-                (bit_stream->convey_cur_len % 8) |
-                ((15 - (bit_stream->convey_cur_len / 8)) << 5);
-            
-            return;
-        }
-        index = search_char(freq, index);
-
-        bit_stream->u[bit_stream->convey_cur_len / 8] |=
-            1 << 
-            ((bit_stream->convey_cur_len % 8
-                + (freq[index].symbol.code_leng - 1) % 8) % 8);
-
-        bit_stream->convey_cur_len += freq[index].symbol.code_leng;
-    }
 }
 
 uchar_t search_char(Frequency_tree* freq, char chr)
