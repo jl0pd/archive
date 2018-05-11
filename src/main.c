@@ -4,6 +4,8 @@
 
 #include "string.h"
 #include "command.h"
+#include "encode.h"
+#include "decode.h"
 
 int main(int argc, char *argv[])
 {
