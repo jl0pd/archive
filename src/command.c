@@ -3,46 +3,116 @@
 void encode_file(char* in, char* out)
 {
     FILE *input = open_to_encode(in);
+    if (input == NULL){
+        printf("no input file\n");
+        return;
+    } else {
+        printf("opened file %s\n", in);
+    }
+
     FILE *output = make_encoded_file(out);
+    if (input == NULL){
+        printf("something wrong with output file\n");
+        return;
+    } else {
+        printf("created file %s\n", out);
+    }
 
     Frequency_tree *freq_tree = 
         (Frequency_tree*)malloc(sizeof(Frequency_tree) * CHAR_COUNT);
 
     freq_tree_init(freq_tree);
+    printf("frequency tree initialised\n");
 
-    while (!feof(input)){
-       freq_tree[getc(input)].count++;
+    rewind(input);
+
+    char index;
+    while (1){
+        index = getc(input);
+        if (index == EOF){
+            break;
+        }
+    
+        freq_tree[(int)index].count++;
     }
+    printf("symbol counted\n");
 
     sort_freq_tree(freq_tree);
+    printf("frequency tree sorted\n");
+
     assign_code(freq_tree);
+    printf("code assigned\n");
+
+    print_freq_tree(freq_tree);
 
     put_encoded(freq_tree, input, output);
+    printf("done\n");
+
+    fclose(input);
+    fclose(output);
+}
+
+void print_freq_tree(Frequency_tree *freq_tree)
+{
+    for (int i = 0; i < CHAR_COUNT; i++){
+        printf("freq[%d].count = %d\n", i, freq_tree[i].count);
+        printf("freq[%d].symbol.bit_offset = %d\n", i, freq_tree[i].symbol.bit_offset);
+        printf("freq[%d].symbol.code_leng = %d\n", i, freq_tree[i].symbol.code_leng);
+        printf("freq[%d].symbol.sign = %d\n", i, freq_tree[i].symbol.sign);
+        printf("freq[%d].symbol.sym = %d '%c'\n", i, freq_tree[i].symbol.sym, freq_tree[i].symbol.sym);
+        putchar('\n');
+    }
 }
 
 void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
 {
     rewind(input);
 
-    uint64_t file_size_byte = 0;
-
-    Conveyor *bit_stream = (Conveyor*)malloc(sizeof(Conveyor*));
+    Conveyor *bit_stream = (Conveyor*)malloc(sizeof(Conveyor));
+    if (bit_stream == NULL){
+        printf("no mem for conveyor\n");
+        return;
+    }
 
     bit_stream->convey_max_len = 32;
     bit_stream->convey_cur_len = 0;
-    for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
+
+    uchar_t i;
+    for(i = 0; i < bit_stream->convey_max_len - 1; i++){
         bit_stream->u[i] = 0;
     }
 
     FileHeader *header = put_file_header(freq, output);
+    printf("header putted\n");
     
     while(!feof(input)){
         convey(bit_stream, freq, input);
+        // printf("after convey\n");
 
-        for(uchar_t i = 0; i < bit_stream->convey_max_len / 2; i++){
+        // for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
+        //     printf("%2d ", i);
+        //     if (i == 15){
+        //         putchar('|');
+        //         putchar(' ');
+        //     }
+        // }
+        // putchar('\n');
+
+        // for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
+        //     printf("%02X ", bit_stream->u[i]);
+        //     if (i == 15){
+        //         putchar('|');
+        //         putchar(' ');
+        //     }
+        // }
+        // putchar('\n');
+
+        // printf("convey cur len %d\n", bit_stream->convey_cur_len);
+
+        for(short i = 0; i < bit_stream->convey_cur_len + 16; i++){
             fputc(bit_stream->u[0], output);
-            file_size_byte++;
-
+            // printf("putted %02X to %d\n", bit_stream->u[0], i);
+            
             for(uchar_t j = 0; j < bit_stream->convey_max_len; j++){
                 bit_stream->u[j] = bit_stream->u[j+1];
             }
@@ -53,19 +123,21 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
             header->file_size++;
         }
     }
+    rewind(output);
+    printf("file size %d\n", header->file_size);
+    fwrite(&header->file_size, sizeof(uint32_t), 1, output);
     free(bit_stream);
+    free(header);
 }
 
 FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
 {
     rewind(output);
 
-    FileHeader *header = (FileHeader*)malloc(sizeof(FileHeader));
+    FileHeader *header = (FileHeader*)malloc(sizeof(FileHeader*));
 
     header->file_size = 0;
     header->chr_count = 0;
-
-    uchar_t index = CHAR_COUNT - 1;
 
     for(uchar_t ind = 0; ind < CHAR_COUNT; ind++){
         if(freq[ind].count > 0){
@@ -76,6 +148,7 @@ FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
     }
     fputc(header->chr_count, output);
 
+    uchar_t index = CHAR_COUNT - 1;
     while(freq[index].count > 0){
         fputc(freq[index].symbol.sym, output);
         fputc(freq[index].symbol.sign << 7 
@@ -93,16 +166,23 @@ void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
 {
     uchar_t index;
 
-    uchar_t arpos, subarpos;
-
-
+   
+        
     while(bit_stream->convey_cur_len < bit_stream->convey_max_len * 4){
-        index = search_char(freq, getc(input));
+        index = getc(input);
+        if ((index < 0) || (index > 127)){
+            bit_stream->u[bit_stream->convey_cur_len / 8] =
+                (bit_stream->convey_cur_len % 8) |
+                ((15 - (bit_stream->convey_cur_len / 8)) << 5);
+            
+            return;
+        }
+        index = search_char(freq, index);
 
-        arpos = bit_stream->convey_cur_len / 8;
-        subarpos = bit_stream->convey_cur_len % 8;
-
-        bit_stream->u[arpos] |= freq[index].symbol.sign << subarpos;
+        bit_stream->u[bit_stream->convey_cur_len / 8] |=
+            1 << 
+            ((bit_stream->convey_cur_len % 8
+                + (freq[index].symbol.code_leng - 1) % 8) % 8);
 
         bit_stream->convey_cur_len += freq[index].symbol.code_leng;
     }
@@ -119,7 +199,7 @@ uchar_t search_char(Frequency_tree* freq, char chr)
 
 void freq_tree_init(Frequency_tree* freq)
 {
-    for (uchar_t i = 0; i < CHAR_COUNT; i++){
+    for (uchar_t i = 0; i < CHAR_COUNT + 1; i++){
         freq[i].count = 0;
         freq[i].symbol.sym = i;
         freq[i].symbol.code_leng = 0;
@@ -133,31 +213,32 @@ void assign_code(Frequency_tree* freq)
 {
     uchar_t i = 0;
 
-    while(freq[CHAR_COUNT - i].count > 0){
-        freq[CHAR_COUNT - i].symbol.sign = 1;
-        freq[CHAR_COUNT - i].symbol.code_leng = i + 1;
-        freq[CHAR_COUNT - i].symbol.bit_offset = 0;
+    while(freq[CHAR_COUNT - i - 2].count > 0){
+        freq[CHAR_COUNT - i - 1].symbol.sign = 1;
+        freq[CHAR_COUNT - i - 1].symbol.code_leng = i + 1;
+        freq[CHAR_COUNT - i - 1].symbol.bit_offset = i % 8;
         
         i++;
     }
-    freq[CHAR_COUNT - i].symbol.sign = 0;
-    freq[CHAR_COUNT - i].symbol.code_leng = i;
-    freq[CHAR_COUNT - i].symbol.bit_offset = 0;
+    freq[CHAR_COUNT - i - 1].symbol.sign = 0;
+    freq[CHAR_COUNT - i - 1].symbol.code_leng = i;
+    freq[CHAR_COUNT - i - 1].symbol.bit_offset = i % 8;
 }
 
 void sort_freq_tree(Frequency_tree* freq)
 {
-    sort(freq, 128);
+    sort(freq, CHAR_COUNT);
 }
 
 void sort(Frequency_tree* arr, uchar_t count)
 {
     uchar_t i = 0;
-    while(i++ < CHAR_COUNT){
+    while(i < CHAR_COUNT - 1){
         if(arr[i].count > arr[i+1].count){
             swap(&arr[i], &arr[i+1]);
             i = 0;
         }
+        i++;
     }
 }
 

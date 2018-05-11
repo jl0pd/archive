@@ -1,4 +1,4 @@
-CFLAGS = -std=c11 -Wall -Werror -g
+CFLAGS = -std=c11 -Wall -Werror -g -O0
 
 all: bin build bin/prog.test
 
