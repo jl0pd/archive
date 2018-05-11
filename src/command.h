@@ -1,4 +1,6 @@
 #include <malloc.h>
+// #include <stdlib.h>
+#include <time.h>
 #include "files.h"
 
 #define CHAR_COUNT 128

@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     // char *output;
 
 
-    encode_file("input.txt", "output.arch");
+    encode_file("input.txt", "output.archive");
 
 /*
     while (++index < argc){

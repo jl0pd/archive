@@ -26,6 +26,8 @@ void encode_file(char* in, char* out)
 
     rewind(input);
 
+    double time_start = clock();
+
     char index;
     while (1){
         index = getc(input);
@@ -35,7 +37,9 @@ void encode_file(char* in, char* out)
     
         freq_tree[(int)index].count++;
     }
-    printf("symbol counted\n");
+
+    double time_end = clock();
+    printf("symbol counted, time elapsed: %fs\n", (time_end - time_start) / CLOCKS_PER_SEC);
 
     sort_freq_tree(freq_tree);
     printf("frequency tree sorted\n");
@@ -43,9 +47,10 @@ void encode_file(char* in, char* out)
     assign_code(freq_tree);
     printf("code assigned\n");
 
-    print_freq_tree(freq_tree);
-
+    time_start = clock();
     put_encoded(freq_tree, input, output);
+    time_end = clock();
+    printf("archieved, time elapsed: %fs\n", (time_end - time_start) / CLOCKS_PER_SEC);
     printf("done\n");
 
     fclose(input);
@@ -84,38 +89,18 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
 
     FileHeader *header = put_file_header(freq, output);
     printf("header putted\n");
+
+    printf("archivating...\n");
     
     while(!feof(input)){
         convey(bit_stream, freq, input);
-        // printf("after convey\n");
 
-        for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
-            printf("%2d ", i);
-            if (i == 15){
-                putchar('|');
-                putchar(' ');
-            }
-        }
-        putchar('\n');
-
-        for(uchar_t i = 0; i < bit_stream->convey_max_len; i++){
-            printf("\x1b[%dm%02X ", bit_stream->u[i] == 0 ? 0 : 31,    bit_stream->u[i]);
-            if (i == 15){
-                putchar('|');
-                putchar(' ');
-            }
-        }
-        putchar('\n');
-
-        for(short i = 0; i < bit_stream->convey_cur_len; i++){
+        for(short i = 0; bit_stream->convey_cur_len > 0; i++){
             fputc(bit_stream->u[0], output);
-            printf("putted %02X to %d\n", bit_stream->u[0],i);
             
             for(uchar_t j = 0; j < bit_stream->convey_max_len; j++){
                 bit_stream->u[j] = bit_stream->u[j+1];
             }
-
-            printf("convey cur len %d\n", bit_stream->convey_cur_len);
 
             bit_stream->u[bit_stream->convey_max_len - 1] = 0;
             bit_stream->convey_cur_len -= 8;
@@ -123,9 +108,13 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
             header->file_size++;
         }
     }
+
+    printf("file size: %d\n", header->file_size);
+    printf("symbol count: %d\n", header->chr_count);
+
     rewind(output);
-    printf("file size %d\n", header->file_size);
     fwrite(&header->file_size, sizeof(uint32_t), 1, output);
+
     free(bit_stream);
     free(header);
 }
@@ -137,7 +126,7 @@ void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
     while(bit_stream->convey_cur_len < bit_stream->convey_max_len * 4){
         index = getc(input);
         if ((index < 0) || (index > 127)){
-            bit_stream->convey_cur_len += 8;
+            bit_stream->convey_cur_len += (8 * 16) - bit_stream->convey_cur_len;
             bit_stream->u[15] =
                 (bit_stream->convey_cur_len % 8) |
                 ((15 - (bit_stream->convey_cur_len / 8)) << 4);
@@ -165,15 +154,6 @@ FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
     header->file_size = 0;
     header->chr_count = 0;
 
-    for(uchar_t ind = 0; ind < CHAR_COUNT; ind++){
-        if(freq[ind].count > 0){
-            header->chr_count++;
-        } else {
-            break;
-        }
-    }
-    fputc(header->chr_count, output);
-
     uchar_t index = CHAR_COUNT - 1;
     while(freq[index].count > 0){
         fputc(freq[index].symbol.sym, output);
@@ -184,6 +164,7 @@ FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
 
         index--;
         header->file_size += 2;
+        header->chr_count++;
     }
 
     return header;
