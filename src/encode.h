@@ -1,18 +1,9 @@
-#include <malloc.h>
-#include <time.h>
-
 #include "command.h"
 
 typedef struct {
-    int count;
+    unsigned long count;
     FileSymCode symbol;
 } Frequency_tree;
-
-typedef struct {
-    short convey_cur_len; //bit
-    uchar_t convey_max_len; //byte
-    uchar_t u[32];
-} Conveyor;
 
 void encode_file(char* in, char* out);
 void print_freq_tree(Frequency_tree *freq_tree);

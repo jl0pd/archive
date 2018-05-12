@@ -12,7 +12,7 @@ FILE* open_to_encode(char* path)
     return f;
 }
 
-FILE* make_coded_file(char* path)
+FILE* make_decoded_file(char* path)
 {
     FILE *f = fopen(path, "w+b");
     return f;

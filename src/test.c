@@ -1,17 +1,11 @@
-#include "command.h"
-#include <math.h>
+#include "decode.h"
 
 int main()
 {
-    FILE *f = fopen("input4gb.txt", "w+b");
+    char in[] = "output.archive";
+    char out[] = "decoded_arch.txt";
 
+    decode_file(in, out);
 
-    unsigned long long count = pow(2, 30);
-
-    for (unsigned long long i = 0; i < count - 1; i++){
-        fputc('a', f);
-    }
-
-    fclose(f);
-
+    return 0;
 }

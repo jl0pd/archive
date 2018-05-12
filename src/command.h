@@ -1,6 +1,9 @@
 #ifndef COMMAND_CURS_H
 #define COMMAND_CURS_H
 
+#include <time.h>
+#include <malloc.h>
+
 #include "files.h"
 
 #define CHAR_COUNT 128
@@ -17,8 +20,15 @@ typedef struct {
 typedef struct FileSymCode{
     char sym;
     uchar_t code_leng; //bit
-    uchar_t bit_offset; //bit
+    uchar_t bit_offset;
     uchar_t sign;
+    uchar_t bit_code;
 } FileSymCode;
+
+typedef struct {
+    short convey_cur_len; //bit
+    uchar_t convey_max_len; //byte
+    uchar_t u[32];
+} Conveyor;
 
 #endif
