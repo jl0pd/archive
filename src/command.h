@@ -13,6 +13,7 @@
 
 typedef struct {
     uchar_t chr_count;
+    uchar_t max_code_len;
     uint32_t file_size;
     struct FileSymCode *symbols;
 } FileHeader;

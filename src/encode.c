@@ -47,6 +47,8 @@ void encode_file(char* in_str, char* out_str)
     assign_code(freq_tree);
     printf("code assigned\n");
 
+    print_freq_tree(freq_tree);
+
     time_start = clock();
     put_encoded(freq_tree, input, output);
     time_end = clock();
@@ -61,12 +63,14 @@ void encode_file(char* in_str, char* out_str)
 void print_freq_tree(Frequency_tree *freq_tree)
 {
     for (int i = 0; i < CHAR_COUNT; i++){
-        printf("freq[%d].count = %lu\n", i, freq_tree[i].count);
-        printf("freq[%d].symbol.bit_offset = %d\n", i, freq_tree[i].symbol.bit_offset);
-        printf("freq[%d].symbol.code_leng = %d\n", i, freq_tree[i].symbol.code_leng);
-        printf("freq[%d].symbol.sign = %d\n", i, freq_tree[i].symbol.sign);
-        printf("freq[%d].symbol.sym = %d '%c'\n", i, freq_tree[i].symbol.sym, freq_tree[i].symbol.sym);
-        putchar('\n');
+        if (freq_tree[i].count > 0){
+            printf("freq[%d].count = %lu\n", i, freq_tree[i].count);
+            printf("freq[%d].symbol.bit_offset = %d\n", i, freq_tree[i].symbol.bit_offset);
+            printf("freq[%d].symbol.code_leng = %d\n", i, freq_tree[i].symbol.code_leng);
+            printf("freq[%d].symbol.sign = %d\n", i, freq_tree[i].symbol.sign);
+            printf("freq[%d].symbol.sym = %d '%c'\n", i, freq_tree[i].symbol.sym, freq_tree[i].symbol.sym);
+            putchar('\n');
+        }
     }
 }
 
@@ -124,6 +128,9 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
 void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
 {
     uchar_t index;
+    uchar_t offset;
+    // uchar_t prevoffset;
+    uchar_t pos;
 
     while(bit_stream->convey_cur_len < bit_stream->convey_max_len * 4){
         index = getc(input);
@@ -138,12 +145,38 @@ void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
 
         index = search_char(freq, index);
 
-        bit_stream->u[bit_stream->convey_cur_len / 8] |=
-            freq[index].symbol.sign << 
-            ((bit_stream->convey_cur_len % 8
-                + (freq[index].symbol.code_leng - 1) % 8) % 8);
-
         bit_stream->convey_cur_len += freq[index].symbol.code_leng;
+
+
+        // prevoffset = offset;
+        // offset = ((((bit_stream->convey_cur_len) % 8) + 7) % 8 + prevoffset) % 8;
+            // + (freq[index].symbol.code_leng + 7)) % 8;
+
+        pos = ((bit_stream->convey_cur_len) / 8);
+
+
+        if (bit_stream->convey_cur_len % 8 == 0){
+            offset = 7;
+            pos--;
+        } else {
+            offset = bit_stream->convey_cur_len % 8 - 1;
+        }
+
+            // + (bit_stream->convey_cur_len / 8 < (bit_stream->convey_cur_len + offset / 8))
+            // ? (bit_stream->convey_cur_len + freq[index].symbol.code_leng) / 8 : 0)
+
+            // + offset < 4 ? 1 : 0
+            // + bit_stream->convey_cur_len / 8 == 0 ? (offset < 4 ? -1 : 0) : 0
+    
+        bit_stream->u[pos] |= freq[index].symbol.sign << offset;
+        
+        // printf("ccl: %2u, off: %d u[%d] = %02X\n",
+        //     bit_stream->convey_cur_len,
+        //     offset,
+        //     pos,
+        //     bit_stream->u[pos]
+        //     );
+
     }
 }
 

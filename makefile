@@ -1,4 +1,4 @@
-CFLAGS = -std=c11 -Wall -Werror -g
+CFLAGS = -O0 -std=c11 -Wall -Werror -g
 
 all: bin build bin/prog.test
 
@@ -25,5 +25,5 @@ clean:
 	rm -r bin
 	rm -r build
 
-run:
+run: bin/prog.test
 	./bin/prog.test 	
