@@ -2,7 +2,7 @@
 
 void decode_file(char *in_str, char *out_str)
 {
-    FILE *in = open_to_decode(in_str);
+    FILE *in = fopen(in_str, "rb");
     if (in == NULL){
         printf("no input file %s\n", in_str);
         return;
@@ -10,7 +10,7 @@ void decode_file(char *in_str, char *out_str)
         printf("opened file %s\n", in_str);
     }
 
-    FILE *out = make_decoded_file(out_str);
+    FILE *out = fopen(out_str, "w+");
     if (out == NULL){
         printf("something wrong with %s\n", out_str);
         return;
@@ -22,20 +22,31 @@ void decode_file(char *in_str, char *out_str)
 
     printf("file size %u Bytes\n", header->file_size);
     printf("char count %d\n", header->chr_count);
-    // for (uchar_t i = 0; i < CHAR_COUNT; i++){
-    //     if(header->symbols[i].bit_code != 0){
-    //         printf("header->symbols[%d].sym = %d '%c'\n",
-    //             i, header->symbols[i].sym, header->symbols[i].sym);
-    //         printf("header->symbols[%d].bit_code = %02X\n",
-    //             i, header->symbols[i].bit_code);
-    //         putchar('\n');
-    //     }
-    // }
 
     convert_symbol_data(header);
     printf("data converted\n");
 
-    // finaly_decode_file(in, header, out);
+    finaly_decode_file(in, header, out);
+}
+
+void print_file_header_decode(FileHeader *header)
+{
+    for (uchar_t i = 0; i < CHAR_COUNT; i++){
+        if(header->symbols[i].bit_code != 0){
+            printf("header->symbols[%d].sym = %d '%c'\n",
+                i, header->symbols[i].sym, header->symbols[i].sym);
+            printf("header->symbols[%d].bit_code = %02X\n",
+                i, header->symbols[i].bit_code);
+            printf("header->symbols[%d].sign = %02X\n",
+                i, header->symbols[i].sign);
+            printf("header->symbols[%d].code_leng = %02X\n",
+                i, header->symbols[i].code_leng);
+            printf("header->symbols[%d].bit_offset = %02X\n",
+                i, header->symbols[i].bit_offset);
+    
+            putchar('\n');
+        }
+    }
 }
 
 FileHeader* read_file_header(FILE *in)
@@ -67,12 +78,15 @@ void convert_symbol_data(FileHeader *header)
     header->max_code_len = 0;
     for (uchar_t i = 0; i < CHAR_COUNT; i++){
         if(header->symbols[i].bit_code != 0){
-            header->symbols[i].bit_code = header->symbols[i].bit_code % 16;
+        
+            header->symbols[i].code_leng = header->symbols[i].bit_code % 16;
             header->symbols[i].bit_offset = (header->symbols[i].bit_code >> 4) % 8;
             header->symbols[i].sign = header->symbols[i].bit_code >> 7;
+            
             if (header->symbols[i].bit_offset > header->max_code_len){
                 header->max_code_len = header->symbols[i].bit_offset;
             }
+        
         } else {
             continue;
         }
@@ -81,6 +95,7 @@ void convert_symbol_data(FileHeader *header)
 
 void finaly_decode_file(FILE *in, FileHeader *header, FILE *out)
 {
+    printf("finaly_decode_file\n");
 
     Conveyor *input_convey = (Conveyor*)malloc(sizeof(Conveyor) * 1);
     input_convey->convey_cur_len = 0;
@@ -97,70 +112,182 @@ void finaly_decode_file(FILE *in, FileHeader *header, FILE *out)
     }
 
 
-    uchar_t bsindex = 0;
-    while(1){
-        while(input_convey->convey_cur_len < input_convey->convey_max_len * 8){
-            if (ftell(in) == header->file_size){
-                return;
-            } else {
-                input_convey->u[bsindex++] = getc(in);
-                input_convey->convey_cur_len += 8;
-            }
-        }
+    uchar_t flag = 1;
 
+    while(flag){
+
+        if (flag && input_convey->convey_cur_len < input_convey->convey_max_len * 6){
+            read_from_file(input_convey, in, header, &flag);
+        }
+        printf("\x1b[32;1minput_convey\x1b[0m\n");
+        print_convey(input_convey);
 
         while(output_convey->convey_cur_len < input_convey->convey_max_len * 8
-        && input_convey->convey_cur_len > 0){
+            && input_convey->convey_cur_len > 0
+            && input_convey->s_bit[input_convey->convey_cur_len / 8] > 0) {
+
             interprate(input_convey, header, output_convey);
         }
 
+        while(output_convey->convey_cur_len / 8 >= 1){
 
-        for (uchar_t i = 0; i < output_convey->convey_cur_len / 8; i++){
-            fputc(output_convey->u[0], out);
+            fputc((char)output_convey->u[0], out);
 
-            for (uchar_t j = 0; j < output_convey->convey_max_len - 1; j++){
-                output_convey->u[j] = output_convey->u[j + 1];
-            }
+            output_convey->convey_cur_len -= 8;
+
+            convey_next_byte(output_convey);
+
         }
-
     }
 }
 
 void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
 {
-    // char i = 0;
-    // while(out->u[(out->convey_cur_len / 8) - 1] % (uchar_t)pow(2, i) == 0){
-    //     i++;
-    // }
+    char tmp;
+    uchar_t code_len;
 
-    // i++;
+     /*
+    while (in->s_bit > 0){
+        code_len = 1;
 
-    uchar_t code_len = 0;
-    uchar_t offset = 0;
+        printf("in->u[0]: %02X\n", in->u[0]);
 
-    while (in->u[code_len / 8] % 1 != 1 || offset < header->max_code_len){
-        code_len++;
-        in->u[0] >>= offset;
-        offset++;
+        in->s_bit[0]--;
+
+        while ((in->u[code_len / 8] & 0x01) != 1
+            && in->s_bit[0] > 0
+            && code_len < header->max_code_len){
+
+            code_len++;
+            in->u[0] >>= 1;
+            in->s_bit[0]--;
+
+            // if (in->s_bit == 0){
+            //     0++;
+            //     in->convey_cur_len -= 8;
+            // }
+        }
+
+        tmp = search_char_by_code_len_and_sign(code_len, (in->u[0]) & 0x01, header);
+
+        in->u[0] >>= 1;
+
+        printf("%d '%c'\n", tmp, tmp);
+
+        printf("0: %d\n", 0);
+        printf("in->u[0]: %02X\n", in->u[0]);
+        printf("code len: %d\n", code_len);
+        printf("in->s_bit[0]: %d\n\n\n", in->s_bit[0]);
+
+        out->u[out->convey_cur_len / 8] = tmp;
+
+        out->convey_cur_len += 8;
+
+        if(out->convey_cur_len == 64){
+            return;
+        }
     }
+     */
 
-    out->u[0] = search_char_by_code_len_and_sign(code_len, in->u[0] % 1, header);
+    printf("in->s_bit[0]: %d\n", in->s_bit[0]);
+    printf("in->convey_cur_len: %d\n", in->convey_cur_len);
+    printf("out->convey_cur_len: %d\n", out->convey_cur_len);
 
-    out->convey_cur_len += 8;
-    in->convey_cur_len -= 8;
-}
 
-uchar_t is_pow_of_two(uchar_t num)
-{
-    uchar_t powers[9] = {0, 1, 2, 4, 8, 16, 32, 64, 128};
+    while(in->s_bit[0] > 0
+    && in->convey_cur_len < in->convey_max_len * 8
+    && out->convey_cur_len < out->convey_max_len * 8){
 
-    for (uchar_t i = 0; i < 9; i++){
-        if (num == powers[i]){
-            return 1;
+        code_len = 1;
+        in->s_bit[0]--;
+        in->convey_cur_len--;
+
+        while((in->u[0] & 0x01) != 1
+        && code_len < header->max_code_len
+        && in->s_bit[0] > 0){
+
+            if (in->s_bit[0] == 0
+                // && code_len < header->max_code_len
+                // && (in->u[0] & 0x01) != 1){
+            ){
+
+                convey_next_byte(in);
+                // in->s_bit[0]--;
+                // in->convey_cur_len--;
+                // in->u[0] >>= 1;
+            
+            } else {
+
+                code_len++;
+                in->u[0] >>= 1;
+                in->s_bit[0]--;
+                in->convey_cur_len--;
+
+            }
+
+        }
+
+        tmp = search_char_by_code_len_and_sign(code_len, (in->u[0]) & 0x01, header);
+
+
+        if (in->s_bit[0] == 0
+        && code_len < header->max_code_len){
+            convey_next_byte(in);
+        } else {
+            in->u[0] >>= 1;
+        }
+
+        printf("%d '%c'\n", tmp, tmp);
+
+        printf("in->u[0]: %02X\n", in->u[0]);
+        printf("code len: %d\n", code_len);
+        printf("in->s_bit[0]: %d\n\n\n", in->s_bit[0]);
+
+        out->u[out->convey_cur_len / 8] = tmp;
+
+        out->convey_cur_len += 8;
+
+        printf("\x1b[32;1minput_convey\x1b[0m\n");
+        print_convey(in);
+
+
+        printf("\x1b[31;1moutput_convey\x1b[0m\n");
+        print_convey(out);
+
+        putchar('\n');
+
+        if(out->convey_cur_len == out->convey_max_len * 8){
+            return;
         }
     }
 
-    return 0;
+    return;
+}
+
+void read_from_file(Conveyor *input_convey, FILE *in, FileHeader *header, uchar_t *flag)
+{
+    printf("start reading: %lu\n", ftell(in));
+
+    while(input_convey->convey_cur_len < input_convey->convey_max_len * 7){
+        if (ftell(in) == header->file_size - 2){
+
+            input_convey->u[input_convey->convey_cur_len / 8] = getc(in);
+            input_convey->s_bit[input_convey->convey_cur_len / 8] = ((uchar_t)getc(in)) % 8;
+            input_convey->convey_cur_len += input_convey->s_bit[input_convey->convey_cur_len / 8];
+
+            *flag = 0;
+            break;
+
+        } else {
+
+            input_convey->u[input_convey->convey_cur_len / 8] = getc(in);
+            input_convey->s_bit[input_convey->convey_cur_len / 8] = 8;
+            input_convey->convey_cur_len += 8;
+
+        }
+    }
+
+    printf("readed: %lu\n", ftell(in));
 }
 
 char search_char_by_code_len_and_sign(uchar_t code_len, uchar_t sign, FileHeader *header)
@@ -168,7 +295,7 @@ char search_char_by_code_len_and_sign(uchar_t code_len, uchar_t sign, FileHeader
     for (uchar_t i = 0; i < CHAR_COUNT; i++){
         if(header->symbols[i].code_leng == code_len){
             if(header->symbols[i].sign == sign){
-                return i;
+                return header->symbols[i].sym;
             }
         }
     }

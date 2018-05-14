@@ -4,8 +4,6 @@
 #include <time.h>
 #include <malloc.h>
 
-#include "files.h"
-
 #define CHAR_COUNT 128
 #define uchar_t unsigned char
 #define uint32_t unsigned int
@@ -27,9 +25,14 @@ typedef struct FileSymCode{
 } FileSymCode;
 
 typedef struct {
-    short convey_cur_len; //bit
     uchar_t convey_max_len; //byte
+    short convey_cur_len; //bit
+    char s_bit[32]; //significant bits
     uchar_t u[32];
 } Conveyor;
+
+
+void convey_next_byte(Conveyor *conv);
+void print_convey(Conveyor *conv);
 
 #endif

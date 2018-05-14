@@ -1,4 +1,4 @@
-CFLAGS = -O0 -std=c11 -Wall -Werror -g
+CFLAGS = -std=c11 -Wall -Werror -g
 
 all: bin build bin/prog.test
 
@@ -25,5 +25,5 @@ clean:
 	rm -r bin
 	rm -r build
 
-run: bin/prog.test
+run: makefile build bin bin/prog.test
 	./bin/prog.test 	
