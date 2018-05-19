@@ -204,26 +204,38 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
         in->s_bit[0]--;
         in->convey_cur_len--;
 
+        if (in->s_bit[0] <= 0
+        && code_len < header->max_code_len
+        && (in->u[0] & 0x01) != 1
+        && in->convey_cur_len > 0){
+
+            convey_next_byte(in);
+
+            code_len++;
+            in->s_bit[0]--;
+            in->convey_cur_len--;
+
+        }
+
         while((in->u[0] & 0x01) != 1
         && code_len < header->max_code_len
         && in->s_bit[0] > 0){
 
+            code_len++;
+            in->convey_cur_len--;
+            in->u[0] >>= 1;
+            in->s_bit[0]--;
+
             if (in->s_bit[0] <= 0
-                && code_len < header->max_code_len
-                && (in->u[0] & 0x01) != 1
-                && in->convey_cur_len > 0){
+            && code_len < header->max_code_len
+            && (in->u[0] & 0x01) != 1
+            && in->convey_cur_len > 0){
 
                 convey_next_byte(in);
-                in->s_bit[0]--;
-                in->convey_cur_len--;
-                in->u[0] >>= 1;
-            
-            } else {
 
                 code_len++;
-                in->convey_cur_len--;
-                in->u[0] >>= 1;
                 in->s_bit[0]--;
+                in->convey_cur_len--;
 
             }
 
