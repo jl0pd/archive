@@ -116,17 +116,20 @@ void finaly_decode_file(FILE *in, FileHeader *header, FILE *out)
 
     while(flag){
 
-        if (flag && input_convey->convey_cur_len < input_convey->convey_max_len * 6){
+        if (flag && input_convey->convey_cur_len < input_convey->convey_max_len * 7){
+
             read_from_file(input_convey, in, header, &flag);
+
         }
+
         printf("\x1b[32;1minput_convey\x1b[0m\n");
         print_convey(input_convey);
 
-        while(output_convey->convey_cur_len < input_convey->convey_max_len * 8
-            && input_convey->convey_cur_len > 0
-            && input_convey->s_bit[input_convey->convey_cur_len / 8] > 0) {
+        while(output_convey->convey_cur_len < output_convey->convey_max_len * 8
+            && input_convey->convey_cur_len > 0){
 
             interprate(input_convey, header, output_convey);
+
         }
 
         while(output_convey->convey_cur_len / 8 >= 1){
@@ -189,10 +192,9 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
     }
      */
 
-    printf("in->s_bit[0]: %d\n", in->s_bit[0]);
-    printf("in->convey_cur_len: %d\n", in->convey_cur_len);
-    printf("out->convey_cur_len: %d\n", out->convey_cur_len);
-
+    if(in->s_bit[0] <= 0){
+        convey_next_byte(in);
+    }
 
     while(in->s_bit[0] > 0
     && in->convey_cur_len < in->convey_max_len * 8
@@ -206,42 +208,38 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
         && code_len < header->max_code_len
         && in->s_bit[0] > 0){
 
-            if (in->s_bit[0] == 0
-                // && code_len < header->max_code_len
-                // && (in->u[0] & 0x01) != 1){
-            ){
+            if (in->s_bit[0] <= 0
+                && code_len < header->max_code_len
+                && (in->u[0] & 0x01) != 1
+                && in->convey_cur_len > 0){
 
                 convey_next_byte(in);
-                // in->s_bit[0]--;
-                // in->convey_cur_len--;
-                // in->u[0] >>= 1;
+                in->s_bit[0]--;
+                in->convey_cur_len--;
+                in->u[0] >>= 1;
             
             } else {
 
                 code_len++;
+                in->convey_cur_len--;
                 in->u[0] >>= 1;
                 in->s_bit[0]--;
-                in->convey_cur_len--;
 
             }
 
         }
 
+
         tmp = search_char_by_code_len_and_sign(code_len, (in->u[0]) & 0x01, header);
 
 
         if (in->s_bit[0] == 0
-        && code_len < header->max_code_len){
+        && code_len < header->max_code_len
+        && in->convey_cur_len > 0){
             convey_next_byte(in);
         } else {
             in->u[0] >>= 1;
         }
-
-        printf("%d '%c'\n", tmp, tmp);
-
-        printf("in->u[0]: %02X\n", in->u[0]);
-        printf("code len: %d\n", code_len);
-        printf("in->s_bit[0]: %d\n\n\n", in->s_bit[0]);
 
         out->u[out->convey_cur_len / 8] = tmp;
 
@@ -272,7 +270,7 @@ void read_from_file(Conveyor *input_convey, FILE *in, FileHeader *header, uchar_
         if (ftell(in) == header->file_size - 2){
 
             input_convey->u[input_convey->convey_cur_len / 8] = getc(in);
-            input_convey->s_bit[input_convey->convey_cur_len / 8] = ((uchar_t)getc(in)) % 8;
+            input_convey->s_bit[input_convey->convey_cur_len / 8] = (uchar_t)getc(in) % 9;
             input_convey->convey_cur_len += input_convey->s_bit[input_convey->convey_cur_len / 8];
 
             *flag = 0;

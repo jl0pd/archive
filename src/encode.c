@@ -144,40 +144,82 @@ void put_encoded(Frequency_tree *freq, FILE *input, FILE *output)
     free(header);
 }
 
-void convey(Conveyor *bit_stream, Frequency_tree *freq, FILE *input)
+void convey(Conveyor *conv, Frequency_tree *freq, FILE *input)
 {
     uchar_t index;
     uchar_t offset;
     uchar_t pos;
 
-    while(bit_stream->convey_cur_len < bit_stream->convey_max_len * 4){
+    while(conv->convey_cur_len < conv->convey_max_len * 4){
         index = getc(input);
-        if ((index < 0) || (index > 127)){
-            bit_stream->u[(bit_stream->convey_cur_len / 8) + 1] =
-                (bit_stream->convey_cur_len % 8);
+        if (index > 127){
 
-            bit_stream->convey_cur_len += 8;
+            conv->u[(conv->convey_cur_len / 8)
+                + (conv->convey_cur_len % 8 == 0 ? 0 : 1)] =
+                // + 1] =                
+                conv->convey_cur_len % 8 == 0 ? 8 : conv->convey_cur_len % 8;
+                // 4;
+
+            conv->convey_cur_len += 8;
+
+            print_convey(conv);
 
             return;
         }
 
         index = search_char(freq, index);
 
-        bit_stream->convey_cur_len += freq[index].symbol.code_leng;
+        conv->convey_cur_len += freq[index].symbol.code_leng;
 
-        pos = ((bit_stream->convey_cur_len) / 8);
+        pos = ((conv->convey_cur_len) / 8);
 
 
-        if (bit_stream->convey_cur_len % 8 == 0){
+        if (conv->convey_cur_len % 8 == 0){
             offset = 7;
             pos--;
         } else {
-            offset = bit_stream->convey_cur_len % 8 - 1;
+            offset = conv->convey_cur_len % 8 - 1;
         }
   
-        bit_stream->u[pos] |= freq[index].symbol.sign << offset;      
+        conv->u[pos] |= freq[index].symbol.sign << offset;
+        // conv->s_bit[pos] += offset;
     }
 }
+
+// void convey(Conveyor *conv, Frequency_tree *freq, FILE *input)
+// {
+//     uchar_t index;
+
+//     while (conv->convey_cur_len < conv->convey_max_len * 4){
+//         index = getc(input);
+
+//         if (index > 127){
+
+//             conv->s_bit[(conv->convey_cur_len / 8) + 1] =                
+//                 conv->s_bit[conv->convey_cur_len];
+
+//             conv->convey_cur_len += 8;
+
+//             print_convey(conv);
+
+//             return;
+//         }
+
+//         index = search_char(freq, index);
+
+//         conv->convey_cur_len += freq[index].symbol.code_leng;
+
+//         if (conv->s_bit[conv->convey_cur_len / 8] == 8){
+//             convey_next_byte(conv);
+//         }
+
+//         conv->u[conv->convey_cur_len / 8] |=
+//             freq[index].symbol.sign
+//             << (conv->s_bit[conv->convey_cur_len / 8] + freq[index].symbol.sign);
+    
+    
+//     }
+// }
 
 FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
 {
