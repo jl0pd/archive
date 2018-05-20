@@ -19,16 +19,16 @@ int main(int argc, char *argv[])
     char modes[3][2] = {
         "\0\0",
         "d\0",
-        "e\0"
+        "c\0"
     };
 
     while (++index < argc){
         if (argv[index][0] == '-'){
             if(argv[index][1] == '-'){
-                if (scmp(argv[index], "--decode") == 0){
+                if (scmp(argv[index], "--decompress") == 0){
                     action[0] = modes[1];
                 
-                }else if(scmp(argv[index], "--encode") == 0){
+                }else if(scmp(argv[index], "--compress") == 0){
                     action[0] = modes[2];
                 
                 }else if(scmp(argv[index], "--output") == 0){
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
                     action[0] = modes[1];
                     break;
 
-                case 'e':
+                case 'c':
                     action[0] = modes[2];
                     break;
 
@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
     }
 
     if(action[0] == 0){
-        printf("-e or --encode to archive\n");
-        printf("-d or --decode to extract\n");
+        printf("-c or --compress to archive\n");
+        printf("-d or --decompress to extract\n");
         printf("-o or --output to name output file\n");
 
         return 0;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     case 'd':
         decode_file(action[1], action[2]);
         break;
-    case 'e':
+    case 'c':
         encode_file(action[1], action[2]);
         break;
     case '\0':
@@ -95,3 +95,4 @@ int main(int argc, char *argv[])
     }
 
 }
+

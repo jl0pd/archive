@@ -1,9 +1,9 @@
-CFLAGS = -std=c11 -Wall -Werror -g
+CFLAGS = -std=c11 -Wall -Werror
 
-all: bin build bin/prog.test
+all: bin build bin/hcompress
 
-bin/prog.test: build/string.o build/main.o build/decode.o build/encode.o
-	gcc $(CFLAGS) build/main.o build/command.o build/string.o build/decode.o build/encode.o -o bin/prog.test
+bin/hcompress: build/string.o build/main.o build/decode.o build/encode.o
+	gcc $(CFLAGS) build/main.o build/command.o build/string.o build/decode.o build/encode.o -o bin/hcompress
 
 build/main.o: src/main.c
 	gcc $(CFLAGS) -c src/main.c -o build/main.o
@@ -26,5 +26,3 @@ clean:
 	rm -r bin
 	rm -r build
 
-run: makefile build bin bin/prog.test
-	./bin/prog.test 	
