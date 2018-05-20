@@ -26,7 +26,11 @@ void decode_file(char *in_str, char *out_str)
     convert_symbol_data(header);
     printf("data converted\n");
 
+
+    printf("extracting...\n");
     finaly_decode_file(in, header, out);
+
+    printf("done\n");
 }
 
 void print_file_header_decode(FileHeader *header)
@@ -114,14 +118,30 @@ void finaly_decode_file(FILE *in, FileHeader *header, FILE *out)
 
     while(flag){
 
-        if (flag && input_convey->convey_cur_len < input_convey->convey_max_len * 7){
+        // if (flag && input_convey->convey_cur_len < input_convey->convey_max_len * 7){
 
-            read_from_file(input_convey, in, header, &flag);
+        //     read_from_file(input_convey, in, header, &flag);
 
+        // }
+
+        while(input_convey->convey_cur_len < input_convey->convey_max_len * 7){
+            if (ftell(in) == header->file_size - 2){
+
+                input_convey->u[input_convey->convey_cur_len / 8] = getc(in);
+                input_convey->s_bit[input_convey->convey_cur_len / 8] = (uchar_t)getc(in) % 9;
+                input_convey->convey_cur_len += input_convey->s_bit[input_convey->convey_cur_len / 8];
+
+                flag = 0;
+                break;
+
+            } else {
+
+                input_convey->u[input_convey->convey_cur_len / 8] = getc(in);
+                input_convey->s_bit[input_convey->convey_cur_len / 8] = 8;
+                input_convey->convey_cur_len += 8;
+
+            }
         }
-
-        // printf("\x1b[32;1minput_convey\x1b[0m\n");
-        // print_convey(input_convey);
 
         while(output_convey->convey_cur_len < output_convey->convey_max_len * 8
             && input_convey->convey_cur_len > 0){
@@ -146,8 +166,6 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
 {
     char tmp;
     uchar_t code_len;
-
-    printf("interprate\n");
 
     if(in->s_bit[0] <= 0){
         convey_next_byte(in);
@@ -212,15 +230,6 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
 
         out->convey_cur_len += 8;
 
-        printf("\x1b[32;1minput_convey\x1b[0m\n");
-        print_convey(in);
-
-
-        // printf("\x1b[31;1moutput_convey\x1b[0m\n");
-        // print_convey(out);
-
-        // putchar('\n');
-
         if(out->convey_cur_len == out->convey_max_len * 8){
             return;
         }
@@ -231,8 +240,6 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
 
 void read_from_file(Conveyor *input_convey, FILE *in, FileHeader *header, uchar_t *flag)
 {
-    printf("start reading: %lu\n", ftell(in));
-
     while(input_convey->convey_cur_len < input_convey->convey_max_len * 7){
         if (ftell(in) == header->file_size - 2){
 
@@ -251,8 +258,6 @@ void read_from_file(Conveyor *input_convey, FILE *in, FileHeader *header, uchar_
 
         }
     }
-
-    printf("readed: %lu\n", ftell(in));
 }
 
 char search_char_by_code_len_and_sign(uchar_t code_len, uchar_t sign, FileHeader *header)
