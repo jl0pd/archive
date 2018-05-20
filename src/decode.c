@@ -120,8 +120,8 @@ void finaly_decode_file(FILE *in, FileHeader *header, FILE *out)
 
         }
 
-        printf("\x1b[32;1minput_convey\x1b[0m\n");
-        print_convey(input_convey);
+        // printf("\x1b[32;1minput_convey\x1b[0m\n");
+        // print_convey(input_convey);
 
         while(output_convey->convey_cur_len < output_convey->convey_max_len * 8
             && input_convey->convey_cur_len > 0){
@@ -147,48 +147,7 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
     char tmp;
     uchar_t code_len;
 
-     /*
-    while (in->s_bit > 0){
-        code_len = 1;
-
-        printf("in->u[0]: %02X\n", in->u[0]);
-
-        in->s_bit[0]--;
-
-        while ((in->u[code_len / 8] & 0x01) != 1
-            && in->s_bit[0] > 0
-            && code_len < header->max_code_len){
-
-            code_len++;
-            in->u[0] >>= 1;
-            in->s_bit[0]--;
-
-            // if (in->s_bit == 0){
-            //     0++;
-            //     in->convey_cur_len -= 8;
-            // }
-        }
-
-        tmp = search_char_by_code_len_and_sign(code_len, (in->u[0]) & 0x01, header);
-
-        in->u[0] >>= 1;
-
-        printf("%d '%c'\n", tmp, tmp);
-
-        printf("0: %d\n", 0);
-        printf("in->u[0]: %02X\n", in->u[0]);
-        printf("code len: %d\n", code_len);
-        printf("in->s_bit[0]: %d\n\n\n", in->s_bit[0]);
-
-        out->u[out->convey_cur_len / 8] = tmp;
-
-        out->convey_cur_len += 8;
-
-        if(out->convey_cur_len == 64){
-            return;
-        }
-    }
-     */
+    printf("interprate\n");
 
     if(in->s_bit[0] <= 0){
         convey_next_byte(in);
@@ -257,10 +216,10 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
         print_convey(in);
 
 
-        printf("\x1b[31;1moutput_convey\x1b[0m\n");
-        print_convey(out);
+        // printf("\x1b[31;1moutput_convey\x1b[0m\n");
+        // print_convey(out);
 
-        putchar('\n');
+        // putchar('\n');
 
         if(out->convey_cur_len == out->convey_max_len * 8){
             return;
