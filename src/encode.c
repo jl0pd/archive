@@ -162,8 +162,6 @@ void convey(Conveyor *conv, Frequency_tree *freq, FILE *input)
 
             conv->convey_cur_len += 8;
 
-            print_convey(conv);
-
             return;
         }
 
@@ -182,44 +180,8 @@ void convey(Conveyor *conv, Frequency_tree *freq, FILE *input)
         }
   
         conv->u[pos] |= freq[index].symbol.sign << offset;
-        // conv->s_bit[pos] += offset;
     }
 }
-
-// void convey(Conveyor *conv, Frequency_tree *freq, FILE *input)
-// {
-//     uchar_t index;
-
-//     while (conv->convey_cur_len < conv->convey_max_len * 4){
-//         index = getc(input);
-
-//         if (index > 127){
-
-//             conv->s_bit[(conv->convey_cur_len / 8) + 1] =                
-//                 conv->s_bit[conv->convey_cur_len];
-
-//             conv->convey_cur_len += 8;
-
-//             print_convey(conv);
-
-//             return;
-//         }
-
-//         index = search_char(freq, index);
-
-//         conv->convey_cur_len += freq[index].symbol.code_leng;
-
-//         if (conv->s_bit[conv->convey_cur_len / 8] == 8){
-//             convey_next_byte(conv);
-//         }
-
-//         conv->u[conv->convey_cur_len / 8] |=
-//             freq[index].symbol.sign
-//             << (conv->s_bit[conv->convey_cur_len / 8] + freq[index].symbol.sign);
-    
-    
-//     }
-// }
 
 FileHeader* put_file_header(Frequency_tree *freq, FILE *output)
 {

@@ -95,8 +95,6 @@ void convert_symbol_data(FileHeader *header)
 
 void finaly_decode_file(FILE *in, FileHeader *header, FILE *out)
 {
-    printf("finaly_decode_file\n");
-
     Conveyor *input_convey = (Conveyor*)malloc(sizeof(Conveyor) * 1);
     input_convey->convey_cur_len = 0;
     input_convey->convey_max_len = 32;
@@ -238,9 +236,7 @@ void interprate(Conveyor *in, FileHeader *header, Conveyor *out)
                 in->convey_cur_len--;
 
             }
-
         }
-
 
         tmp = search_char_by_code_len_and_sign(code_len, (in->u[0]) & 0x01, header);
 
