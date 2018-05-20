@@ -1,3 +1,6 @@
+#ifndef ENCODE_H_CURS
+#define ENCODE_H_CURS
+
 #include "command.h"
 
 typedef struct {
@@ -16,3 +19,5 @@ void assign_code(Frequency_tree* freq);
 void sort_freq_tree(Frequency_tree* freq);
 void sort(Frequency_tree* arr, uchar_t count);
 void swap(Frequency_tree* p1, Frequency_tree* p2);
+
+#endif

@@ -53,8 +53,6 @@ void encode_file(char* in_str, char* out_str)
     assign_code(freq_tree);
     printf("code assigned\n");
 
-    // print_freq_tree(freq_tree);
-
     time_start = clock();
     put_encoded(freq_tree, input, output);
     time_end = clock();
